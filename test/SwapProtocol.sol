@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.30;
+
+import "forge-std/Test.sol";
+import {SwapProtocol} from "../src/SwapProtocol.sol";
+import {IAggregationExecutor} from "../src/interfaces/IAggregationExecutor.sol";
+import {SwapDescription} from "../src/interfaces/IAggregationRouterV6.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {console} from "forge-std/console.sol";
+
+contract SwapProtocolTest is Test {
+    SwapProtocol public swapProtocol;
+
+    ERC20 public stablecoin = ERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
+
+    receive() external payable {}
+
+    function setUp() public {
+        swapProtocol = new SwapProtocol(
+            0x111111125421cA6dc452d289314280a0f8842A65,
+            address(stablecoin)
+        );
+    }
+
+    function test_contractAddress() public view {
+        console.log("contractAddress", address(swapProtocol));
+    }
+
+    function test_this() public view {
+        console.log("thisAddress", address(this));
+    }
+
+    function test_buyToken() public {
+        bytes memory data = hex"0000000000000003020002d400028a0002700001c00000f000005400000600206b4be0b900a0744c8c09000000000000000000000000000000000000000090cbe4bdd538d6e9b379bff5fe72c3d67a521de500000000000000000000000000000000000000000000000000354a6ba7a1800041600b1a513ee24972daef112bc777a5610d4325c9e700242668dfaa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005141b82f5ffda4c6fe1e372978f1c5427640a190512237417b2238aa52d0dd2d6252d989e728e8f706e47f39c581f595b53c5cb19bd0b3f8da6c935e2ca00044a64833a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005141b82f5ffda4c6fe1e372978f1c5427640a19051204dece678ceceb27446b35c672dc7d61f30bad69ef939e0a03fb07f59a73314e73794be0e57ac1b4e00443df0212400000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010020d6bdbf78a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800a0f2fa6b66a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800000000000000000000000000000000000000000000000000000002ba1a4c53000000000000000000000000004bee8780a06c4eca27a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48111111125421ca6dc452d289314280a0f8842a65";
+
+        (uint256 returnAmount, uint256 spentAmount) = swapProtocol.sellEth{value: 5000000000000000000}(
+            5000000000000000000,
+            1,
+            0x5141B82f5fFDa4c6fE1E372978F1C5427640a190,
+            data,
+            block.timestamp + 1000000
+        );
+
+        uint256 tokenBalance = stablecoin.balanceOf(address(this));
+        assertEq(tokenBalance, returnAmount);
+        assertEq(spentAmount, 5000000000000000000);
+    }
+
+    function test_sellToken() public {
+        bytes memory data = hex"00000000000000000000000000000000013500011f0000e300006800001a0020d6bdbf78a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4800a0744c8c09a0b86991c6218b36c1d19d4a2e9eb0ce3606eb4890cbe4bdd538d6e9b379bff5fe72c3d67a521de50000000000000000000000000000000000000000000000000000000000000bb80c20a0b86991c6218b36c1d19d4a2e9eb0ce3606eb483aa370aacf4cb08c7e1e7aa8e8ff9418d73c7e0f6ae4071198002dc6c03aa370aacf4cb08c7e1e7aa8e8ff9418d73c7e0f0000000000000000000000000000000000000000000000000000000000000001a0b86991c6218b36c1d19d4a2e9eb0ce3606eb484101c02aaa39b223fe8d0a0e5c4f27ead9083c756cc200042e1a7d4d0000000000000000000000000000000000000000000000000000000000000000c061111111125421ca6dc452d289314280a0f8842a65";
+
+        uint256 tokenAmount = 1 * 10 ** 6;
+        uint256 beforeBalance = address(this).balance;
+
+        vm.startPrank(0x37305B1cD40574E4C5Ce33f8e8306Be057fD7341);
+        stablecoin.transfer(address(this), tokenAmount);
+        vm.stopPrank();
+
+        stablecoin.approve(address(swapProtocol), tokenAmount);
+
+        (uint256 returnAmount, uint256 spentAmount) = swapProtocol.buyEth(
+            tokenAmount,
+            1,
+            0x5141B82f5fFDa4c6fE1E372978F1C5427640a190,
+            data,
+            block.timestamp + 1000000
+        );
+
+        uint256 ethBalance = address(this).balance;
+        assertEq(ethBalance, beforeBalance + returnAmount);
+        assertEq(spentAmount, tokenAmount);
+    }
+}
