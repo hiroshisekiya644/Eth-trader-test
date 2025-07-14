@@ -14,5 +14,5 @@ https://getfoundry.sh/introduction/installation
 ### 2. Run test command
 
 ```sh
-forge test --fork-url https://eth-mainnet.g.alchemy.com/v2/aERv4KbVC6qXIhUVfC-icFukxf7vF7Ea -vvv
+forge test --fork-url https://eth-mainnet.g.alchemy.com/v2/aERv4KbVC6qXIhUVfC-icFukxf7vF7Ea -vvvv
 ```
